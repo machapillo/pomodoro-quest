@@ -1,16 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw } from 'lucide-react';
-import { calculateXpGain, calculateNextLevelXp, getTitleForLevel } from './utils/gameLogic';
 
+// --- Inlined Game Logic ---
+const BASE_XP = 100;
+const XP_MULTIPLIER = 1.5;
+
+const calculateNextLevelXp = (level: number) => {
+  return Math.floor(BASE_XP * Math.pow(level, XP_MULTIPLIER));
+};
+
+const CLASSES = [
+  { level: 1, title: 'Novice Wanderer' },
+  { level: 5, title: 'Apprentice Focusing' },
+  { level: 10, title: 'Quest Knight' },
+  { level: 20, title: 'High Concentration Mage' },
+  { level: 50, title: 'Grandmaster of Flow' }
+];
+
+const getTitleForLevel = (level: number): string => {
+  const reversedClasses = [...CLASSES].reverse();
+  const matchedClass = reversedClasses.find(c => level >= c.level);
+  return matchedClass ? matchedClass.title : CLASSES[0].title;
+};
+
+// --- App Component ---
 const STORAGE_KEY = 'pomodoro-quest-v1';
 const FOCUS_DURATION = 25;
 
 function App() {
-  // --- Timer Logic ---
+  // Timer State
   const [timeLeft, setTimeLeft] = useState(FOCUS_DURATION * 60);
   const [isActive, setIsActive] = useState(false);
 
-  // --- Gamification Logic ---
+  // Gamification State
   const [stats, setStats] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -26,12 +47,11 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
   }, [stats]);
 
-  const addXp = (amount) => {
-    setStats(prev => {
+  const addXp = (amount: number) => {
+    setStats((prev: any) => {
       let xp = prev.currentXp + amount;
       let level = prev.level;
 
-      // Level Up Logic
       let loopGuard = 0;
       while (loopGuard < 100) {
         const req = calculateNextLevelXp(level);
@@ -53,17 +73,16 @@ function App() {
     });
   };
 
-  // --- Timer Effect ---
   useEffect(() => {
-    let interval = null;
+    let interval: any = null;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft(t => {
+        setTimeLeft((t: number) => {
           if (t <= 1) {
             setIsActive(false);
-            const earned = calculateXpGain(FOCUS_DURATION);
+            const earned = 250; // Fixed 250 XP
             addXp(earned);
-            // We need to use setTimeout to allow render to finish before alert
+            // Alert wrapped in timeout to avoid render blocking
             setTimeout(() => alert(`Quest Complete! +${earned} XP`), 100);
             return 0;
           }
@@ -87,7 +106,7 @@ function App() {
   return (
     <div className="w-full min-h-screen flex flex-col items-center justify-center text-center p-4 bg-slate-900 text-white font-sans selection:bg-yellow-400 selection:text-black">
 
-      {/* HUD: Stats */}
+      {/* HUD Panel */}
       <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
         <div className="text-left bg-slate-800/80 backdrop-blur p-4 rounded-lg border border-white/10 pointer-events-auto shadow-lg">
           <h2 className="text-xl text-yellow-400 font-bold tracking-wider">{stats.title}</h2>
@@ -105,7 +124,7 @@ function App() {
         </div>
       </div>
 
-      {/* Timer Display */}
+      {/* Timer */}
       <div className="relative mb-12">
         <div className={`absolute -inset-10 bg-cyan-500/20 blur-3xl rounded-full transition-opacity duration-1000 ${isActive ? 'opacity-100' : 'opacity-20'}`}></div>
 
@@ -125,18 +144,16 @@ function App() {
             onClick={start}
             className="group relative px-8 py-4 bg-yellow-500 text-black font-bold text-lg rounded shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:shadow-[0_0_30px_rgba(234,179,8,0.5)] hover:scale-105 transition-all"
           >
-            <span className="flex items-center gap-2">
-              <Play size={24} fill="currentColor" /> Begin Quest
-            </span>
+            ▶ Begin Quest
           </button>
         ) : (
           <div className="flex gap-4">
-            <button onClick={pause} className="px-8 py-4 bg-slate-800 border border-white/20 hover:bg-white/10 text-white rounded font-bold text-lg transition-colors flex items-center gap-2">
-              <Pause size={24} fill="currentColor" /> Pause
+            <button onClick={pause} className="px-8 py-4 bg-slate-800 border border-white/20 hover:bg-white/10 text-white rounded font-bold text-lg transition-colors">
+              ❚❚ Pause
             </button>
 
-            <button onClick={reset} className="px-8 py-4 bg-red-900/80 hover:bg-red-800 text-red-100 rounded font-bold text-lg transition-colors flex items-center gap-2">
-              <RotateCcw size={24} /> Abandon
+            <button onClick={reset} className="px-8 py-4 bg-red-900/80 hover:bg-red-800 text-red-100 rounded font-bold text-lg transition-colors">
+              ↻ Abandon
             </button>
           </div>
         )}
